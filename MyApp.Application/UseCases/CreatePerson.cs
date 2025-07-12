@@ -1,7 +1,7 @@
 using System;
 using MyApp.Application.DTOs;
+using MyApp.Application.Repository;
 using MyApp.Domain.Entities;
-using MyApp.Domain.Interfaces;
 
 namespace MyApp.Application.UseCases;
 

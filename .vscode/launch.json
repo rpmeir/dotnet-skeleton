@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "coreclr",
+      "request": "launch",
+      "name": "Launch MyApp.API",
+      "preLaunchTask": "build MyApp.API",
+      "program": "${workspaceFolder}/MyApp.API/bin/Debug/net8.0/MyApp.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MyApp.API",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "launchBrowser": {
+        "enabled": true,
+        "args": "${auto-detect-url}"
+      }
+    }
+  ]
+}

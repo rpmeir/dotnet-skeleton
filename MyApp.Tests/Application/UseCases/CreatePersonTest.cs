@@ -1,7 +1,7 @@
 using Moq;
 using MyApp.Application.DTOs;
+using MyApp.Application.Repository;
 using MyApp.Application.UseCases;
-using MyApp.Domain.Interfaces;
 
 namespace MyApp.Tests.Application.UseCases;
 
