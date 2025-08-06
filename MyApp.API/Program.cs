@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MyApp.Application.Repository;
 using MyApp.Application.UseCases;
-using MyApp.Domain.Interfaces;
 using MyApp.Infrastructure.Persistence;
 using MyApp.Infrastructure.Repositories;
 

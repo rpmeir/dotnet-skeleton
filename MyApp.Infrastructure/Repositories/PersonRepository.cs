@@ -6,10 +6,9 @@ using MyApp.Infrastructure.Persistence;
 
 namespace MyApp.Infrastructure.Repositories;
 
-public class PersonRepository : IPersonRepository
+public class PersonRepository(AppDbContext context) : IPersonRepository
 {
-    private readonly AppDbContext _context;
-    public PersonRepository(AppDbContext context) => _context = context;
+    private readonly AppDbContext _context = context;
 
     public async Task AddAsync(Person person) => await _context.Persons.AddAsync(person);
     public async Task<List<Person>> GetAllAsync() => await _context.Persons.ToListAsync();
