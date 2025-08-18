@@ -211,9 +211,6 @@ Everything works the same conceptually—just with `[TestClass]` and `[TestMetho
 - Stick with **naming conventions** like `MethodName_ExpectedBehavior_Scenario` for clarity.
 - Keep tests **fast**, **focused**, and **isolated**—especially in a clean architecture setup.
 
----
-
-If you want, I can generate all the project scaffolding using MSTest in a Copilot Page so you can edit and organize everything easily. Want me to start that for you? Or maybe explore integration tests or CI workflows next?
 
 ---
 
@@ -223,5 +220,3 @@ If you want, I can generate all the project scaffolding using MSTest in a Copilo
 - 🧼 Follow SOLID principles: keep responsibilities clear.
 - 🪟 Use DTOs to avoid leaking domain details to the outer world.
 - 🧪 Use mockable interfaces to isolate tests.
-
-If you'd like, I can help you set up actual files and generate content into a Copilot Page to organize your project. Want me to start that for you? Or would you like to extend this API with things like pagination, validation, or domain events?
