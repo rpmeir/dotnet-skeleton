@@ -1,4 +1,4 @@
-Absolutely, Rodrigo! Let’s build a Web API with .NET Core for a simple PostgreSQL table—using **Clean Architecture**, **Hexagonal Architecture**, **Domain-Driven Design**, and **Unit Testing**—all while keeping the project decoupled, modular, and easy to maintain. Buckle up, this is a full-stack ride done right 🚀
+## Step-by-step dotnet project
 
 ---
 
