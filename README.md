@@ -158,11 +158,12 @@ public class PersonController : ControllerBase {
 
 This sets up a project ready to use MSTest attributes like `[TestMethod]`.
 
-Make sure your test project can access the application and domain layers:
+Make sure your test project can access the application, domain and infrastructure layers:
 
 ```bash
 dotnet add MyApp.Tests reference ../MyApp.Application
 dotnet add MyApp.Tests reference ../MyApp.Domain
+dotnet add MyApp.Tests reference ../MyApp.Infrastructure
 ```
 
 Add the required MSTest packages if needed:
@@ -172,6 +173,7 @@ dotnet add MyApp.Tests package Microsoft.NET.Test.Sdk
 dotnet add MyApp.Tests package MSTest.TestAdapter
 dotnet add MyApp.Tests package MSTest.TestFramework
 dotnet add MyApp.Tests package Moq
+dotnet add MyApp.Tests package Microsoft.EntityFrameworkCore.InMemory
 ```
 
 ---
@@ -179,31 +181,62 @@ dotnet add MyApp.Tests package Moq
 Here’s how you’d create a MSTest class:
 
 ```csharp
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
-using MyApp.Domain;
-using MyApp.Application;
-using System;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Application.DTOs;
+using MyApp.Application.UseCases;
+using MyApp.Infrastructure.Persistence;
+using MyApp.Infrastructure.Repositories;
 
-namespace MyApp.Tests;
+namespace MyApp.Tests.Application.UseCases;
 
 [TestClass]
-public class CreatePersonTests {
+public class CreatePersonTest
+{
+    private AppDbContext _context = null!;
+    private PersonRepository _repo = null!;
+    private CreatePerson _useCase = null!;
+
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDb")
+            .Options;
+
+        _context = new AppDbContext(options);
+    }
+
     [TestMethod]
-    public async Task ShouldCreatePerson() {
-        var mockRepo = new Mock<IPersonRepository>();
-        var useCase = new CreatePerson(mockRepo.Object);
-        var dto = new PersonDto { Name = "Alice", BirthDate = new DateOnly(1990, 1, 1) };
+    public async Task ShouldCreatePerson()
+    {
+        _repo = new PersonRepository(_context);
+        _useCase = new CreatePerson(_repo);
 
-        await useCase.ExecuteAsync(dto);
+        var dto = new PersonDto
+        {
+            Name = "John Doe",
+            BirthDate = new DateOnly(1990, 1, 1)
+        };
 
-        mockRepo.Verify(r => r.AddAsync(It.IsAny<Person>()), Times.Once);
+        await _useCase.ExecuteAsync(dto);
+        await _context.SaveChangesAsync();
+
+        var persons = await _repo.GetAllAsync();
+        Assert.AreEqual(1, persons.Count);
+        Assert.AreEqual("John Doe", persons[0].Name);
+        Assert.AreEqual(new DateOnly(1990, 1, 1), persons[0].BirthDate);
+    }
+
+    [TestCleanup]
+    public void TestCleanup()
+    {
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
     }
 }
 ```
 
-Everything works the same conceptually—just with `[TestClass]` and `[TestMethod]` instead of `[Fact]`.
+Everything works the same conceptually—just with `[TestClass]` and `[TestMethod]`.
 
 ---
 
