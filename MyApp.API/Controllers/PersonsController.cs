@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Application.DTOs;
 using MyApp.Application.UseCases;
@@ -8,16 +7,9 @@ namespace MyApp.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PersonsController : ControllerBase
+    public class PersonsQueryController(GetPersonById getPersonById) : ControllerBase
     {
-        private readonly CreatePerson _createPerson;
-        private readonly GetPersonById _getPersonById;
-
-        public PersonsController(CreatePerson createPerson, GetPersonById getPersonById)
-        {
-            _createPerson = createPerson;
-            _getPersonById = getPersonById;
-        }
+        private readonly GetPersonById _getPersonById = getPersonById;
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<Person>> GetById(Guid id)
@@ -33,6 +25,13 @@ namespace MyApp.API.Controllers
         {
             return new List<Person>();
         }
+    }
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PersonsCommandController(CreatePerson createPerson) : ControllerBase
+    {
+        private readonly CreatePerson _createPerson = createPerson;
 
         [HttpPost]
         public async Task<IActionResult> Create(PersonDto dto)

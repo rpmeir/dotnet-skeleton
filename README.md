@@ -60,7 +60,32 @@ Keep it clean: no EF Core, no implementation details here.
 
 ### 3. 🔁 Application Layer (`MyApp.Application`)
 
-Create use cases and DTOs:
+Create DTOs
+
+```csharp
+// DTOs/PersonDto.cs
+public class PersonDto {
+    public string Name { get; set; } = string.Empty;
+    public DateOnly BirthDate { get; set; }
+}
+```
+
+Create IPersonRepository interface:
+```csharp
+// Repository/IPersonRepository.cs
+using MyApp.Domain.Entities;
+
+namespace MyApp.Application.Repository;
+
+public interface IPersonRepository
+{
+    Task<Person?> GetByIdAsync(Guid id);
+    Task<List<Person>> GetAllAsync();
+    Task AddAsync(Person person);
+}
+```
+
+Create CreatePerson use case:
 
 ```csharp
 // UseCases/CreatePerson.cs
@@ -76,11 +101,32 @@ public class CreatePerson {
         await _repo.AddAsync(person);
     }
 }
+```
 
-// DTOs/PersonDto.cs
-public class PersonDto {
-    public string Name { get; set; } = string.Empty;
-    public DateOnly BirthDate { get; set; }
+Create GetPersonById use case:
+
+```csharp
+// UseCases/GetPersonById.cs
+using System;
+using System.Threading.Tasks;
+using MyApp.Application.Repository;
+using MyApp.Domain.Entities;
+
+namespace MyApp.Application.UseCases;
+
+public class GetPersonById
+{
+    private readonly IPersonRepository _repo;
+
+    public GetPersonById(IPersonRepository repo)
+    {
+        _repo = repo;
+    }
+
+    public async Task<Person?> ExecuteAsync(Guid id)
+    {
+        return await _repo.GetByIdAsync(id);
+    }
 }
 ```
 
@@ -124,32 +170,94 @@ Configure DI and endpoints:
 
 ```csharp
 // Program.cs
+using Microsoft.EntityFrameworkCore;
+using MyApp.Application.Repository;
+using MyApp.Application.UseCases;
+using MyApp.Infrastructure.Persistence;
+using MyApp.Infrastructure.Repositories;
+
+var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddScoped<IPersonRepository, PersonRepository>();
 builder.Services.AddScoped<CreatePerson>();
+builder.Services.AddScoped<GetPersonById>();
+
+builder.Services.AddControllers();
+// Add services to the container.
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+await app.RunAsync();
+
 ```
 
 Create a controller:
 
 ```csharp
 // Controllers/PersonController.cs
-[ApiController]
-[Route("api/person")]
-public class PersonController : ControllerBase {
-    private readonly CreatePerson _createPerson;
+using Microsoft.AspNetCore.Mvc;
+using MyApp.Application.DTOs;
+using MyApp.Application.UseCases;
+using MyApp.Domain.Entities;
 
-    public PersonController(CreatePerson createPerson) {
-        _createPerson = createPerson;
+namespace MyApp.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PersonsQueryController(GetPersonById getPersonById) : ControllerBase
+    {
+        private readonly GetPersonById _getPersonById = getPersonById;
+
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<Person>> GetById(Guid id)
+        {
+            var person = await _getPersonById.ExecuteAsync(id);
+            if (person == null)
+                return NotFound();
+            return Ok(person);
+        }
+
+        [HttpGet]
+        public ActionResult<IEnumerable<Person>> GetAll()
+        {
+            return new List<Person>();
+        }
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create(PersonDto dto) {
-        await _createPerson.ExecuteAsync(dto);
-        return Ok();
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PersonsCommandController(CreatePerson createPerson) : ControllerBase
+    {
+        private readonly CreatePerson _createPerson = createPerson;
+
+        [HttpPost]
+        public async Task<IActionResult> Create(PersonDto dto)
+        {
+            await _createPerson.ExecuteAsync(dto);
+            return Created();
+        }
     }
 }
+
 ```
 
 ---
@@ -179,9 +287,11 @@ dotnet add MyApp.Tests package Microsoft.AspNetCore.Mvc.Testing --version 8.0.19
 
 ---
 
-Here’s how you’d create a MSTest class:
+Here’s how you’d create the MSTest classes:
 
+Create the CreatePersonTest class:
 ```csharp
+// Application/UseCases/CreatePersonTest.cs
 using Microsoft.EntityFrameworkCore;
 using MyApp.Application.DTOs;
 using MyApp.Application.UseCases;
@@ -195,7 +305,7 @@ public class CreatePersonTest
 {
     private AppDbContext _context = null!;
     private PersonRepository _repo = null!;
-    private CreatePerson _useCase = null!;
+    private CreatePerson _createPerson = null!;
 
     [TestInitialize]
     public void TestInitialize()
@@ -205,21 +315,20 @@ public class CreatePersonTest
             .Options;
 
         _context = new AppDbContext(options);
+        _repo = new PersonRepository(_context);
+        _createPerson = new CreatePerson(_repo);
     }
 
     [TestMethod]
     public async Task ShouldCreatePerson()
     {
-        _repo = new PersonRepository(_context);
-        _useCase = new CreatePerson(_repo);
-
         var dto = new PersonDto
         {
             Name = "John Doe",
             BirthDate = new DateOnly(1990, 1, 1)
         };
 
-        await _useCase.ExecuteAsync(dto);
+        await _createPerson.ExecuteAsync(dto);
         await _context.SaveChangesAsync();
 
         var persons = await _repo.GetAllAsync();
@@ -236,6 +345,69 @@ public class CreatePersonTest
     }
 }
 ```
+
+Create the GetPersonByIdTest test class:
+```csharp
+// Application/UseCases/GetPersonByIdTest.cs
+using Microsoft.EntityFrameworkCore;
+using MyApp.Domain.Entities;
+using MyApp.Infrastructure.Persistence;
+using MyApp.Infrastructure.Repositories;
+using MyApp.Application.UseCases;
+
+namespace MyApp.Tests.Application.UseCases;
+
+[TestClass]
+public class GetPersonByIdTest
+{
+    private AppDbContext _context = null!;
+    private PersonRepository _repo = null!;
+    private GetPersonById _getPersonById = null!;
+
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDb")
+            .Options;
+        _context = new AppDbContext(options);
+        _repo = new PersonRepository(_context);
+        _getPersonById = new GetPersonById(_repo);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ReturnsPerson_WhenPersonExists()
+    {
+        var personId = Guid.NewGuid();
+        var person = new Person { Id = personId, Name = "John Doe", BirthDate = new DateOnly(1990, 1, 1) };
+        await _context.Persons.AddAsync(person);
+        await _context.SaveChangesAsync();
+
+        var result = await _getPersonById.ExecuteAsync(personId);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(personId, result!.Id);
+        Assert.AreEqual("John Doe", result.Name);
+        Assert.AreEqual(new DateOnly(1990, 1, 1), result.BirthDate);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ReturnsNull_WhenPersonDoesNotExist()
+    {
+        var personId = Guid.NewGuid();
+        var result = await _getPersonById.ExecuteAsync(personId);
+        Assert.IsNull(result);
+    }
+
+    [TestCleanup]
+    public void TestCleanup()
+    {
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
+    }
+}
+```
+
 
 Everything works the same conceptually—just with `[TestClass]` and `[TestMethod]`.
 
