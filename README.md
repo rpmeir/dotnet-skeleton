@@ -34,6 +34,8 @@ dotnet sln add MyApp.API
 dotnet sln add MyApp.Tests
 ```
 
+---
+
 ### 2. 📦 Setup Domain Layer (`MyApp.Domain`)
 
 ```csharp
