@@ -173,7 +173,8 @@ dotnet add MyApp.Tests package Microsoft.NET.Test.Sdk
 dotnet add MyApp.Tests package MSTest.TestAdapter
 dotnet add MyApp.Tests package MSTest.TestFramework
 dotnet add MyApp.Tests package Moq
-dotnet add MyApp.Tests package Microsoft.EntityFrameworkCore.InMemory
+dotnet add MyApp.Tests package Microsoft.EntityFrameworkCore.InMemory --version 8.0.19
+dotnet add MyApp.Tests package Microsoft.AspNetCore.Mvc.Testing --version 8.0.19
 ```
 
 ---

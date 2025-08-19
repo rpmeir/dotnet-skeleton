@@ -11,6 +11,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 
 builder.Services.AddScoped<IPersonRepository, PersonRepository>();
 builder.Services.AddScoped<CreatePerson>();
+builder.Services.AddScoped<GetPersonById>();
 
 builder.Services.AddControllers();
 // Add services to the container.

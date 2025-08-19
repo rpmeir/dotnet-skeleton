@@ -11,7 +11,7 @@ public class CreatePersonTest
 {
     private AppDbContext _context = null!;
     private PersonRepository _repo = null!;
-    private CreatePerson _useCase = null!;
+    private CreatePerson _createPerson = null!;
 
     [TestInitialize]
     public void TestInitialize()
@@ -21,21 +21,20 @@ public class CreatePersonTest
             .Options;
 
         _context = new AppDbContext(options);
+        _repo = new PersonRepository(_context);
+        _createPerson = new CreatePerson(_repo);
     }
 
     [TestMethod]
     public async Task ShouldCreatePerson()
     {
-        _repo = new PersonRepository(_context);
-        _useCase = new CreatePerson(_repo);
-
         var dto = new PersonDto
         {
             Name = "John Doe",
             BirthDate = new DateOnly(1990, 1, 1)
         };
 
-        await _useCase.ExecuteAsync(dto);
+        await _createPerson.ExecuteAsync(dto);
         await _context.SaveChangesAsync();
 
         var persons = await _repo.GetAllAsync();
